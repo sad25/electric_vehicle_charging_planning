@@ -1,0 +1,475 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>EV Şarj Planlama – İnteraktif Simülasyon</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#1a1a2e;color:#fff}
+#map{width:100%;height:100vh}
+.panel{position:absolute;top:14px;right:14px;z-index:1000;width:340px;
+ background:rgba(20,20,40,.96);border-radius:14px;padding:16px;
+ border:1px solid rgba(255,255,255,.1);max-height:95vh;overflow:auto}
+h3{font-size:15px;margin-bottom:10px;text-align:center}
+label{display:block;font-size:11px;color:#8b8fa3;margin:8px 0 3px}
+select,button{width:100%;padding:8px;border-radius:8px;border:1px solid #3d3d5a;
+ background:#2d2d4a;color:#fff;font-size:13px}
+button{cursor:pointer;font-weight:700;margin-top:10px;border:none}
+.run{background:#4361ee}.run:hover{background:#5a78ff}
+.row{display:flex;gap:6px}.row>div{flex:1}
+.stat{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;
+ border-bottom:1px solid rgba(255,255,255,.06)}
+.stat b{font-variant-numeric:tabular-nums}
+.note{font-size:11px;color:#f5c97a;margin-top:8px;min-height:14px}
+#sum{margin-top:10px;font-size:12px;background:#232342;border-radius:10px;
+ padding:12px;display:none}
+#sum .sx{font-size:11px;color:#f5c97a;background:rgba(243,156,18,.12);
+ border:1px solid rgba(243,156,18,.3);border-radius:8px;padding:7px 9px;
+ margin-bottom:9px;line-height:1.5;word-break:break-all}
+#sum .st{margin-bottom:9px}
+#sum .sg{background:#1c1c34;border-radius:8px;padding:4px 10px;
+ margin-bottom:9px}
+#sum .sr{display:flex;justify-content:space-between;align-items:center;
+ padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px}
+#sum .sr:last-child{border-bottom:0}
+#sum .sr span{color:#9aa0b8}
+#sum .sr b{font-variant-numeric:tabular-nums}
+#sum .sh2{font-size:12px;font-weight:700;color:#c9b6ff;margin:4px 0 6px}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;
+ font-weight:700}.ok{background:rgba(46,204,113,.2);color:#2ecc71}
+.fail{background:rgba(231,76,60,.2);color:#ff6b5b}
+.cross{background:rgba(243,156,18,.2);color:#f5c97a;font-size:10px}
+.spd-row{display:flex;gap:5px;margin:4px 0 4px}
+.spd-row button{flex:1;padding:6px 0;font-size:11px;background:#2d2d4a;
+ border:1px solid #3d3d5a;border-radius:7px;color:#cfd2e0;cursor:pointer}
+.spd-row button.on{background:#4361ee;color:#fff;border-color:#4361ee}
+#spdbar{position:fixed;top:14px;left:50%;transform:translateX(-50%);
+ z-index:1100;display:flex;align-items:center;gap:10px;
+ background:rgba(20,20,40,.96);padding:8px 14px;border-radius:12px;
+ border:1px solid rgba(255,255,255,.12);box-shadow:0 6px 24px rgba(0,0,0,.5)}
+#spdbar .sl{font-size:11px;color:#8b8fa3;white-space:nowrap}
+#spdbar .spd-row{margin:0;gap:6px;flex:0 0 auto}
+#spdbar .spd-row button{flex:0 0 auto;width:auto;padding:6px 14px;
+ font-size:12px;white-space:nowrap}
+#stops{margin-top:10px;font-size:11px;max-height:230px;overflow:auto;display:none}
+#stops .sh{font-weight:700;color:#8ab4ff;margin-bottom:5px;font-size:12px}
+.stop{background:#232342;border-radius:8px;padding:7px 9px;margin-bottom:5px;
+ border-left:3px solid #f39c12}
+.stop b{color:#fff}.stop .d{color:#8b8fa3;font-size:10px}
+.now{margin:8px 0;padding:8px 10px;border-radius:8px;font-size:13px;
+ background:#2d2d4a;border-left:3px solid #4361ee}
+.now.charging{background:rgba(46,204,113,.15);border-left-color:#2ecc71}
+.now.detour{background:rgba(230,126,34,.15);border-left-color:#e67e22}
+#ctrl{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+ z-index:1200;display:flex;align-items:center;gap:10px;
+ background:rgba(20,20,40,.96);padding:10px 16px;border-radius:12px;
+ border:1px solid rgba(255,255,255,.12);box-shadow:0 6px 24px rgba(0,0,0,.5)}
+#ctrl button{background:#2d2d4a;border:1px solid #3d3d5a;color:#fff;
+ padding:8px 12px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
+#ctrl button#play{background:#4361ee;border-color:#4361ee;min-width:110px}
+#ctrl input[type=range]{width:320px;accent-color:#4361ee;cursor:pointer}
+#ctrl #clock{font-size:12px;color:#cfd2e0;min-width:96px;text-align:right;
+ font-variant-numeric:tabular-nums}
+#flash{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:1300;
+ background:rgba(46,204,113,.92);color:#fff;padding:10px 22px;border-radius:10px;
+ font-weight:700;font-size:14px;opacity:0;transition:opacity .4s;
+ pointer-events:none}
+#live{position:fixed;top:14px;left:14px;z-index:1100;width:210px;
+ background:rgba(20,20,40,.96);border:1px solid rgba(255,255,255,.1);
+ border-radius:12px;padding:12px 14px}
+#live .lh{font-size:11px;color:#8b8fa3;text-align:center;margin-bottom:6px;
+ text-transform:uppercase;letter-spacing:.5px}
+.ib{width:auto !important;display:inline-block;margin:3px 0 2px;padding:3px 8px;
+ font-size:10px;font-weight:600;background:#23233f;color:#8ab4ff;
+ border:1px solid #3d3d5a;border-radius:6px;cursor:pointer}
+.ib:hover{background:#2d2d4a;color:#bcd3ff}
+#infoCard{position:fixed;inset:0;z-index:2500;display:none;
+ background:rgba(8,8,18,.72);align-items:center;justify-content:center}
+#infoCard .box{background:#16162c;border:1px solid #3d3d5a;border-radius:14px;
+ max-width:520px;width:90%;max-height:82vh;overflow:auto;padding:20px 22px;
+ box-shadow:0 12px 48px rgba(0,0,0,.6)}
+#infoCard h3{text-align:left;font-size:17px;margin-bottom:3px;color:#c9b6ff}
+#infoCard .cap{font-size:11px;color:#8b8fa3;margin-bottom:14px}
+#infoCard .ir{padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+#infoCard .ir .l{font-size:12px;color:#8ab4ff;font-weight:700}
+#infoCard .ir .v{font-size:14px;font-weight:800;margin:1px 0;
+ font-variant-numeric:tabular-nums}
+#infoCard .ir .m{font-size:12px;color:#aab0c4;line-height:1.5}
+#infoCard .x{margin-top:14px;background:#4361ee;border:none;color:#fff;
+ width:100%;padding:9px;border-radius:8px;font-weight:700;cursor:pointer}
+</style></head><body>
+<div id="map"></div>
+<div id="flash"></div>
+<div id="spdbar">
+ <span class="sl">Animasyon hızı</span>
+ <div class="spd-row" id="spd-row"></div>
+</div>
+<div id="ctrl" style="display:none">
+ <button onclick="seekBy(-15)">⏮ −15 dk</button>
+ <button onclick="togglePlay()" id="play">⏸ Duraklat</button>
+ <button onclick="seekBy(15)">+15 dk ⏭</button>
+ <input type="range" id="seek" min="0" max="1000" value="0"
+  oninput="seekTo(this.value)">
+ <span id="clock">0 / 0 dk</span>
+</div>
+<div class="panel">
+ <h3>EV Şarj Planlama – İnteraktif</h3>
+ <div class="row">
+  <div><label>Araç</label><select id="vehicle"></select>
+   <button class="ib" onclick="showInfo('vehicle','vehicle')">ⓘ Bu nedir?</button></div>
+  <div><label>Rota</label><select id="route"></select>
+   <button class="ib" onclick="showInfo('route','route')">ⓘ Bu nedir?</button></div>
+ </div>
+ <div class="row">
+  <div><label>Sürücü</label><select id="driver"></select>
+   <button class="ib" onclick="showInfo('driver','driver')">ⓘ Bu nedir?</button></div>
+  <div><label>Hava</label><select id="weather"></select>
+   <button class="ib" onclick="showInfo('weather','weather')">ⓘ Bu nedir?</button></div>
+ </div>
+ <div class="row">
+  <div><label>Trafik</label><select id="traffic"></select>
+   <button class="ib" onclick="showInfo('traffic','traffic')">ⓘ Bu nedir?</button></div>
+  <div><label>Algoritma</label><select id="algo"></select>
+   <button class="ib" onclick="showInfo('algo','algo')">ⓘ Bu nedir?</button></div>
+ </div>
+ <label>Model hangi senaryoda eğitildi? (çapraz-koşul)</label>
+ <select id="modelscn"><option value="matched">Bu senaryonun kendi modeli</option></select>
+ <button class="ib" onclick="showInfo('model_scenario','modelscn')">ⓘ Bu nedir?</button>
+ <button class="run" onclick="runSim()">▶ Simülasyonu Çalıştır</button>
+ <div class="note" id="note"></div>
+ <div id="sum"></div>
+ <div id="stops"></div>
+</div>
+<div id="live">
+ <div class="lh">Canlı Durum</div>
+ <div class="stat"><span>SoC</span><b id="soc">–</b></div>
+ <div class="stat"><span>Hız</span><b id="spd">–</b></div>
+ <div class="stat"><span>Mesafe</span><b id="dist">–</b></div>
+ <div class="stat"><span>Süre</span><b id="time">–</b></div>
+</div>
+<div id="infoCard"><div class="box">
+ <h3 id="icTitle"></h3><div class="cap" id="icCap"></div>
+ <div id="icBody"></div>
+ <button class="x" onclick="$('infoCard').style.display='none'">Kapat</button>
+</div></div>
+<script>
+const $=id=>document.getElementById(id);
+let map=L.map('map',{zoomControl:false}).setView([39.5,32],6);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+ {maxZoom:19}).addTo(map);
+let routeLayer=null,stationLayer=L.layerGroup().addTo(map),
+ detourLayer=L.layerGroup().addTo(map),car=null,anim=null,
+ stationMarkers=[],chargedEvents=[];
+// EN: SPD = simulated minutes compressed into one real second.
+// TR: SPD = bir gerçek saniyeye sıkıştırılan simüle-dakika.
+let SPD=10, RUN_EPOCH=0, SIM=null, NAT=null;
+const SPD_PRESETS=[["Yavaş",4],["Normal",10],["Hızlı",30],["Çok Hızlı",90]];
+function buildSpeedRow(){
+ const r=document.getElementById('spd-row');r.innerHTML='';
+ SPD_PRESETS.forEach(([lbl,v])=>{
+  const b=document.createElement('button');b.textContent=lbl;
+  if(v===SPD)b.className='on';
+  b.onclick=()=>{SPD=v;[...r.children].forEach(c=>c.className='');
+   b.className='on';};
+  r.appendChild(b);});
+}
+buildSpeedRow();
+
+function fill(sel,arr,labels){sel.innerHTML='';arr.forEach(v=>{
+ let o=document.createElement('option');o.value=v;
+ o.textContent=labels&&labels[v]?labels[v]:v;sel.appendChild(o);});}
+
+let OPT=null;
+fetch('/api/options').then(r=>r.json()).then(o=>{OPT=o;
+ fill($('vehicle'),o.vehicles);fill($('route'),o.routes,o.route_labels);
+ fill($('driver'),o.drivers);fill($('weather'),o.weathers);
+ fill($('traffic'),o.traffics);
+ const algos=o.rl_algos.concat(o.baselines.map(b=>'baseline_'+b));
+ fill($('algo'),algos);
+ // çapraz-koşul: tüm eğitilmiş model senaryoları
+ o.model_scenarios.forEach(s=>{let op=document.createElement('option');
+  op.value=s;op.textContent=s;$('modelscn').appendChild(op);});
+});
+
+function runSim(){
+ NAT=null;
+ const base={vehicle:$('vehicle').value,route:$('route').value,
+  driver:$('driver').value,weather:$('weather').value,
+  traffic:$('traffic').value,algo:$('algo').value};
+ const chosen=$('modelscn').value;
+ const cross=(chosen!=='matched' && $('algo').value.indexOf('baseline_')!==0);
+ const q=new URLSearchParams(Object.assign({},base,
+  {model_scenario:chosen}));
+ $('note').textContent='Simülasyon çalışıyor…';
+ fetch('/api/simulate?'+q).then(r=>r.ok?r.json():r.json().then(e=>{throw e}))
+  .then(render).catch(e=>{$('note').textContent='Hata: '+(e.detail||e);});
+ // EN: Cross model chosen → also run this route's OWN (matched) model on
+ //     the SAME test env, auto-compare in the right panel when finished.
+ // TR: Çapraz model seçildiyse → aynı test ortamında rotanın KENDİ
+ //     (matched) modelini de koş, bitince sağ panelde otomatik kıyas.
+ if(cross){
+  const qn=new URLSearchParams(Object.assign({},base,
+   {model_scenario:'matched'}));
+  fetch('/api/simulate?'+qn).then(r=>r.ok?r.json():null).then(j=>{
+   if(j&&j.summary){NAT={summary:j.summary,meta:j.meta};
+    if(SIM&&SIM.done)showSum(SIM.s,SIM.alive);}
+  }).catch(()=>{});
+ }
+}
+
+function render(d){
+ if(anim)cancelAnimationFrame(anim);
+ if(routeLayer)map.removeLayer(routeLayer);
+ stationLayer.clearLayers();detourLayer.clearLayers();
+ routeLayer=L.polyline(d.route_line,{color:'#4361ee',weight:4,opacity:.5}).addTo(map);
+ map.fitBounds(routeLayer.getBounds(),{padding:[40,40]});
+ stationMarkers=[];
+ d.stations.forEach(s=>{
+  const mk=L.circleMarker([s.lat,s.lng],{radius:5,color:'#f39c12',
+   weight:1,fillColor:'#f39c12',fillOpacity:.9}).bindTooltip(s.name+' · '+
+   s.power_kw+'kW'+(s.detour_km>0.5?' · sapma '+s.detour_km.toFixed(1)+' km'
+   :' · yol üstü')).addTo(stationLayer);
+  mk._sname=s.name; stationMarkers.push(mk);
+ });
+ // EN: From the trajectory, find each charging block: when it STARTS and
+ //     ENDS (in sim-minutes) and at which station. Used to recolor the
+ //     station marker as the car arrives / leaves. / TR: Trajektoriden
+ //     her şarj bloğunun baş/bitiş anını ve istasyonunu çıkar.
+ // EN: A charging point's timestamp is the END of charging; the actual
+ //     wait is the time gap BEFORE it. So the "at-station charging
+ //     window" = [arrival (previous point), charging-point time].
+ // TR: Şarj noktasının zaman damgası şarjın BİTİŞİ; asıl bekleme ondan
+ //     ÖNCEKİ boşlukta. Bu yüzden "istasyonda şarj penceresi" =
+ //     [varış (önceki nokta), şarj-noktası zamanı].
+ chargedEvents=[];
+ {const tj=d.trajectory||[];
+  for(let k=0;k<tj.length;k++){
+   if(tj[k].event==='charging'){
+    chargedEvents.push({name:tj[k].station,
+     start:(k>0?tj[k-1].total_time_min:tj[k].total_time_min),
+     end:tj[k].total_time_min});
+   }
+  }
+ }
+ const t=d.trajectory;let i=0;
+ // EN: Draw the actual detour roads (off-highway excursions) so the car
+ //     never appears to move through empty space. / TR: Sapma yollarını
+ //     çiz; araç boşlukta gidiyormuş gibi görünmesin.
+ // Sadece gerçek sapma+şarj noktaları çizilir; anayola izdüşürülmüş
+ // komşu nokta EKLENMEZ (o, haritayı kesen sahte düz çizgiye yol açıyordu).
+ function flushSeg(seg){
+  if(seg&&seg.length>1)L.polyline(seg,{color:'#e67e22',weight:4,
+   opacity:.9,dashArray:'6,6'}).addTo(detourLayer);
+ }
+ function farJump(a,b){ // ~derece -> kaba km; >40 km sıçrama = kopukluk
+  return (Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1]))*111>40;
+ }
+ let seg=null;
+ for(let k=0;k<t.length;k++){
+  if(t[k].event==='detour'||t[k].event==='charging'){
+   const pt=[t[k].lat,t[k].lng];
+   if(!seg){seg=[pt];}
+   else if(farJump(seg[seg.length-1],pt)){flushSeg(seg);seg=[pt];}
+   else seg.push(pt);
+  }else if(seg){flushSeg(seg);seg=null;}
+ }
+ flushSeg(seg);
+ if(car)map.removeLayer(car);
+ car=L.circleMarker([t[0].lat,t[0].lng],{radius:8,color:'#fff',
+  weight:2,fillColor:'#4361ee',fillOpacity:1}).addTo(map);
+ const m=d.meta, s=d.summary, alive=s.arrival_soc>0.01;
+ // EN: Reset summary/stops at every sim START; fill them at the END.
+ // TR: Her sim BAŞINDA özet+duraklar sıfırlanır, BİTİNCE doldurulur.
+ $('note').textContent='';
+ $('sum').style.display='none'; $('sum').innerHTML='';
+ renderStops([]);
+ // EN: SIM holds the playable state so the bottom bar can scrub/pause.
+ //     simMin advances by SPD simulated-minutes per real second;
+ //     position is interpolated by total_time_min, so the car genuinely
+ //     dwells while charging/waiting. / TR: SIM, alt çubuğun ileri-geri
+ //     ve duraklatması için oynatma durumunu tutar.
+ SIM={t:t, T:t[t.length-1].total_time_min||1, simMin:0, ci:0,
+      playing:true, epoch:++RUN_EPOCH, s:s, alive:alive,
+      meta:m, stops:(d.stops||[]),
+      lastTs:null, prevEvent:'start', done:false};
+ $('ctrl').style.display='flex';
+ $('play').textContent='⏸ Duraklat';
+ if(anim)cancelAnimationFrame(anim);
+ anim=requestAnimationFrame(simFrame);
+}
+
+function updateView(){
+ const S=SIM; if(!S)return;
+ let ci=0;
+ while(ci<S.t.length-1 && S.t[ci+1].total_time_min<=S.simMin)ci++;
+ S.ci=ci;
+ const a=S.t[ci], b=S.t[Math.min(ci+1,S.t.length-1)];
+ const dn=b.total_time_min-a.total_time_min;
+ const f=dn>1e-9?Math.min(1,(S.simMin-a.total_time_min)/dn):0;
+ car.setLatLng([a.lat+f*(b.lat-a.lat), a.lng+f*(b.lng-a.lng)]);
+ // EN: The charging point's timestamp is the END of the wait, so while
+ //     dwelling toward it the state is effectively "charging". Look ahead
+ //     to b. / TR: Şarj noktası bekleme BİTİŞİ; ona doğru beklerken durum
+ //     fiilen "şarj"dır — bir sonraki noktaya (b) bakılır.
+ const ev=(b!==a && b.event==='charging')?'charging':a.event;
+ const col=ev==='charging'?'#2ecc71':ev==='detour'?'#e67e22':
+  a.soc<0.15?'#e74c3c':'#4361ee';
+ car.setStyle({fillColor:col});
+ // EN: Recolor station markers by sim time — turuncu: henüz uğranmadı,
+ //     yeşil yanıp sönen: şu an şarj ediliyor, yeşil dolu: şarj bitti
+ //     (araç ayrıldı). Re-evaluated every frame -> ileri/geri sarmada
+ //     da doğru. / TR: İstasyon işaretlerini simülasyon zamanına göre yeniden boya.
+ stationMarkers.forEach(mk=>{
+  let state=0; // 0=bekliyor 1=şarjda 2=bitti
+  for(const ev of chargedEvents){
+   if(ev.name!==mk._sname)continue;
+   if(S.simMin>ev.end)state=Math.max(state,2);
+   else if(S.simMin>=ev.start)state=Math.max(state,1);
+  }
+  if(state===2)mk.setStyle({color:'#2ecc71',fillColor:'#2ecc71',
+   radius:6,weight:2});
+  else if(state===1)mk.setStyle({color:'#fff',fillColor:'#2ecc71',
+   radius:9,weight:2});
+  else mk.setStyle({color:'#f39c12',fillColor:'#f39c12',
+   radius:5,weight:1});
+ });
+ $('soc').textContent=Math.round(a.soc*100)+'%';
+ $('spd').textContent=ev==='charging'?'0 km/h (şarjda)':
+  Math.round(a.speed)+' km/h';
+ $('dist').textContent=Math.round(a.km)+' km';
+ $('time').textContent=Math.round(a.total_time_min)+' dk / '+
+  (a.total_time_min/60).toFixed(1)+' sa';
+ // alt çubuk
+ $('seek').value=Math.round(S.simMin/S.T*1000);
+ $('clock').textContent=Math.round(S.simMin)+' / '+Math.round(S.T)+' dk';
+}
+
+function simFrame(ts){
+ const S=SIM; if(!S||S.epoch!==RUN_EPOCH)return;
+ if(S.lastTs==null)S.lastTs=ts;
+ if(S.playing && !S.done){
+  S.simMin+=SPD*(ts-S.lastTs)/1000;
+  if(S.simMin>=S.T){S.simMin=S.T; S.done=true;
+   updateView(); showSum(S.s,S.alive); renderStops(S.stops);
+   $('play').textContent='↻ Baştan'; anim=requestAnimationFrame(simFrame);
+   S.lastTs=ts; return;}
+ }
+ S.lastTs=ts;
+ updateView();
+ anim=requestAnimationFrame(simFrame);
+}
+
+function togglePlay(){
+ if(!SIM)return;
+ if(SIM.done){SIM.simMin=0;SIM.done=false;SIM.prevEvent='start';
+  $('sum').style.display='none';renderStops([]);}
+ SIM.playing=!SIM.playing;
+ $('play').textContent=SIM.playing?'⏸ Duraklat':'▶ Oynat';
+}
+function seekBy(dmin){ if(!SIM)return;
+ SIM.simMin=Math.max(0,Math.min(SIM.T,SIM.simMin+dmin));
+ SIM.done=SIM.simMin>=SIM.T; updateView(); }
+function seekTo(pct){ if(!SIM)return;
+ SIM.simMin=Math.max(0,Math.min(SIM.T,pct/1000*SIM.T));
+ SIM.done=SIM.simMin>=SIM.T; updateView(); }
+let flashT=null;
+function flash(msg){ const e=$('flash'); e.textContent=msg;
+ e.style.opacity=1; clearTimeout(flashT);
+ flashT=setTimeout(()=>e.style.opacity=0,2600); }
+function renderStops(stops){
+ const el=$('stops');
+ if(!stops.length){el.style.display='none';return;}
+ let h='<div class="sh">Şarj durakları ('+stops.length+')</div>';
+ stops.forEach((p,n)=>{
+  h+='<div class="stop"><b>'+(n+1)+'. '+p.station+'</b> · km '+p.km+
+   '<br><span class="d">%'+p.soc_before+' → %'+p.soc_after+
+   ' · şarj '+p.charge_min+' dk'+
+   (p.wait_min>0.5?' · bekleme '+p.wait_min+' dk':'')+
+   (p.detour_km>0.5?' · sapma '+p.detour_km+' km':' · yol üstü')+
+   '</span></div>';
+ });
+ el.innerHTML=h; el.style.display='block';
+}
+function showSum(s,alive){
+ $('sum').style.display='block';
+ const m=(SIM&&SIM.meta)||{};
+ const row=(l,v)=>'<div class="sr"><span>'+l+'</span><b>'+v+'</b></div>';
+ let html='';
+ if(m.is_cross)
+  html+='<div class="sx">ÇAPRAZ model · eğitim senaryosu:<br><b>'+
+   m.trained_on+'</b></div>';
+ html+='<div class="st"><span class="pill '+(alive?'ok':'fail')+'">'+
+  (alive?'✓ Varış Başarılı':'✕ Batarya Bitti')+'</span></div>'+
+  '<div class="sg">'+
+  row('Toplam süre',s.total_time_h.toFixed(2)+' sa')+
+  row('Şarj süresi',Math.round(s.charge_time_min)+' dk')+
+  row('Sapma',Math.round(s.total_detour_km||0)+' km')+
+  row('Maliyet',Math.round(s.total_cost_tl)+' TL')+
+  row('Varış SoC','%'+Math.round(s.arrival_soc*100))+
+  '</div>';
+ // EN: Cross model used → auto-compare vs this route's OWN model.
+ // TR: Çapraz model → rotanın KENDİ modeliyle otomatik kıyas.
+ if(m.is_cross && NAT && NAT.summary){
+  const ns=NAT.summary, na=ns.arrival_soc>0.01;
+  const dz=(va,vb,u,lb)=>{const x=vb-va,g=lb?x<0:x>0;
+   return '<b class="'+(Math.abs(x)<1e-6?'':(g?'delta-good':'delta-bad'))+
+   '">'+(x>0?'+':'')+x.toFixed(2)+u+'</b>';};
+  const rl=(CM&&CM.route_labels&&CM.route_labels[$('route').value])
+   ||$('route').value;
+  html+='<div class="sh2">Çapraz model ↔ bu rotanın kendi modeli</div>'+
+   '<div class="sg">'+
+   '<div class="sr"><span>Kendi modeli ('+rl+')</span>'+
+   '<b><span class="pill '+(na?'ok':'fail')+'" style="font-size:10px">'+
+   (na?'vardı':'bitti')+'</span></b></div>'+
+   row('Kendi · süre',ns.total_time_h.toFixed(2)+' sa')+
+   row('Kendi · maliyet',Math.round(ns.total_cost_tl)+' TL')+
+   row('Kendi · varış SoC','%'+Math.round(ns.arrival_soc*100))+
+   '</div><div class="sh2">Fark (çapraz − kendi)</div><div class="sg">'+
+   '<div class="sr"><span>Süre</span>'+
+   dz(ns.total_time_h,s.total_time_h,' sa',true)+'</div>'+
+   '<div class="sr"><span>Maliyet</span>'+
+   dz(ns.total_cost_tl,s.total_cost_tl,' TL',true)+'</div>'+
+   '<div class="sr"><span>Varış SoC</span>'+
+   dz(ns.arrival_soc*100,s.arrival_soc*100,'%',false)+'</div></div>';
+ }
+ $('sum').innerHTML=html;
+}
+
+/* ====== BİLGİ KARTLARI (koddan doğrulanmış) ====== */
+let INFO=null;
+const CAT_TITLE={vehicle:'Araç',route:'Rota',driver:'Sürücü',
+ weather:'Hava',traffic:'Trafik',algo:'Algoritma',
+ model_scenario:'Model Senaryosu'};
+function showInfo(cat,selId){
+ const open=()=>{
+  const val=$(selId).value;
+  let rows;
+  if(cat==='model_scenario'){
+   rows=[ (val==='matched')?INFO.model_scenario[0]:INFO.model_scenario[1] ];
+  }else{
+   rows=(INFO[cat]&&INFO[cat][val])||null;
+  }
+  if(!rows){ $('icTitle').textContent=CAT_TITLE[cat]||cat;
+   $('icCap').textContent='Bu seçim için kayıt yok: '+val;
+   $('icBody').innerHTML=''; }
+  else{
+   $('icTitle').textContent=(CAT_TITLE[cat]||cat)+' — '+val;
+   $('icCap').textContent='Açıklamalar bu değişkenin ne anlama '+
+    'geldiğini gösterir.';
+   $('icBody').innerHTML=rows.map(r=>
+    '<div class="ir"><div class="l">'+r.label+'</div>'+
+    '<div class="v">'+r.value+'</div>'+
+    '<div class="m">'+r.meaning+'</div></div>').join('');
+  }
+  $('infoCard').style.display='flex';
+ };
+ if(INFO){open();return;}
+ fetch('/api/info').then(r=>r.json()).then(j=>{INFO=j;open();})
+  .catch(e=>{$('icTitle').textContent='Hata';
+   $('icCap').textContent='Bilgi yüklenemedi: '+e;
+   $('icBody').innerHTML='';$('infoCard').style.display='flex';});
+}
+$('infoCard').addEventListener('click',e=>{
+ if(e.target.id==='infoCard')$('infoCard').style.display='none';});
+
+
+</script></body></html>

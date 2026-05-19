@@ -1,0 +1,69 @@
+# EV Sarj Optimizasyonu - Genel Konfigurasyon
+# =============================================
+
+# --- Arac Secenekleri ---
+vehicles:
+  - ioniq5    # Hyundai IONIQ 5 84 kWh (2024)
+  - tesla3    # Tesla Model 3 Long Range (2023+)
+
+# --- Rota Secenekleri ---
+routes:
+  - istanbul_ankara   # 450 km
+  - istanbul_izmir    # 480 km
+  - ankara_antalya    # 480 km
+
+# --- Surucu Profilleri ---
+drivers:
+  - eco         # Eko surucu
+  - normal      # Normal surucu
+  - aggressive  # Agresif surucu
+
+# --- Yuk Senaryolari ---
+loads:
+  - hafif    # 1 kisi, 85 kg
+  - normal   # 2 kisi, 170 kg
+  - agir     # 4-5 kisi, 400 kg
+
+# --- Hava Kosullari ---
+weather_scenarios:
+  - optimal          # 22°C, ruzgarsiz
+  - yaz_gunesli      # 30°C
+  - kis_soguk        # -5°C
+  - yagmurlu         # 12°C, yagmur
+
+# --- Trafik ---
+traffic:
+  - weekday    # Hafta ici
+  - weekend    # Hafta sonu
+
+# --- RL Hiperparametreleri ---
+training:
+  num_episodes: 2000
+  gamma: 0.99
+  lr: 5e-4
+  batch_size: 64
+  buffer_size: 50000
+  eps_start: 1.0
+  eps_end: 0.01
+  eps_decay: 0.995
+  tau: 0.005
+  hidden_dim: 128
+  target_update_freq: 10
+  seed: 42
+
+# --- Degerldirme ---
+evaluation:
+  num_episodes: 50
+  departure_hours: [6, 8, 10, 14, 18, 22]
+  initial_socs: [0.80, 0.60, 1.00]
+
+# --- Algoritmalar ---
+algorithms:
+  - dqn           # Standard DQN
+  - double_dqn    # Double DQN
+  - ppo           # PPO (Stable-Baselines3)
+
+# --- Deney Matrisi ---
+# Tam matris: 3 driver x 3 route x 2 vehicle x 4 weather x 2 traffic x 3 load = 432 senaryo
+# Her senaryo icin: egitim (2000 ep) + degerlendirme (50 ep)
+# Tahmini sure: ~1-2 gun (RTX 3050 Ti)

@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: >-
+  Bu yazılım AGPL-3.0 (açık/akademik kullanım) veya ayrı bir ticari lisans
+  altında sunulur. Akademik kullanımda lütfen aşağıdaki bildiriye atıf verin.
+  Ticari/kapalı kullanım için: info@yildsamteknoloji.com
+title: "EV Şarj Planlama RL Motoru"
+authors:
+  - family-names: "Yıldırım"
+    given-names: "Saadettin"
+    affiliation: "Yıldsam Teknoloji"
+    email: "info@yildsamteknoloji.com"
+date-released: 2026-05-19
+license: AGPL-3.0-or-later
+repository-code: "https://github.com/sad25/electric_vehicle_charging_planning"
+# Akademik atıf: yazılımın dayandığı bildiri (yazarlık bildiriye aittir)
+preferred-citation:
+  type: conference-paper
+  title: "Uzun Mesafeli Elektrikli Araç Yolculukları İçin Pekiştirmeli Öğrenme Tabanlı Şarj Planlama Asistanı"
+  authors:
+    - family-names: "Yalçın"
+      given-names: "Emre"
+    - family-names: "Yıldırım"
+      given-names: "Saadettin"
+    - family-names: "İlyas"
+      given-names: "Seyitali"
+    - family-names: "Tunç"
+      given-names: "İlhan"
+  collection-title: "Proceedings of the 1st International Turkic World Artificial Intelligence and Digital Transformation Congress (TURKWAI'26)"
+  number: "76"  # Submission / paper ID
+  conference:
+    name: "1st International Turkic World Artificial Intelligence and Digital Transformation Congress (TURKWAI'26)"
+    city: "Bishkek"
+    country: "KG"
+    date-start: 2026-05-18
+    date-end: 2026-05-19
+  year: 2026
+  month: 5

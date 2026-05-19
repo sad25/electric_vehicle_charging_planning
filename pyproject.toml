@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (c) 2026 Saadettin Yıldırım (Yıldsam Teknoloji)
+#
+# Build/packaging config for the evroute engine.
+# evroute motoru için derleme/paketleme yapılandırması.
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "evroute"
+dynamic = ["version"]
+description = "EV uzun yol şarj planlama RL motoru / EV long-distance charging-planning RL engine"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "AGPL-3.0-or-later" }
+authors = [{ name = "Saadettin Yıldırım", email = "info@yildsamteknoloji.com" }]
+dependencies = [
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "scipy>=1.10",
+  "torch>=2.0",
+  "gymnasium>=0.29",
+  "stable-baselines3>=2.1",
+  "pyyaml>=6.0",
+]
+
+# Optional extras / Opsiyonel ekstralar:
+#   data  -> external API fetchers / dış API çekiciler
+#   serve -> FastAPI service + map / FastAPI servisi + harita
+#   viz   -> plotting/figures / grafik-şekil üretimi
+[project.optional-dependencies]
+data  = ["requests>=2.31"]
+serve = ["fastapi", "uvicorn", "folium>=0.14"]
+viz   = ["matplotlib>=3.7", "folium>=0.14"]
+test  = ["pytest>=7"]
+all   = ["evroute[data,serve,viz,test]"]
+
+[project.scripts]
+evroute = "evroute.cli:main"
+
+[tool.hatch.version]
+path = "src/evroute/version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/evroute", "evroute_serve"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

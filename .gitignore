@@ -1,0 +1,43 @@
+# Secrets
+.env
+*.key
+secrets.*
+
+# Virtual environments
+venv/
+.venv/
+
+# Python cache / build
+__pycache__/
+*.pyc
+*.ipynb
+.ipynb_checkpoints/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+build/
+dist/
+
+# Logs
+*.log
+
+# Generated outputs
+trip_visualization.html
+*.tmp
+
+# Backups
+*.backup.json
+*.backup_*.json
+*_backup_*/
+data/processed/results/_backup_*/
+
+# Trained models and datasets (regenerated locally via fetch)
+*.pt
+*.pth
+/data/
+
+# Misc
+*.deb
+.crawler-state/
+.DS_Store
